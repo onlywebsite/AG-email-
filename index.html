@@ -576,6 +576,15 @@ header { text-align:center; padding:44px 0 32px; }
 .dots span:nth-child(3){animation-delay:.4s}
 @keyframes dotB { 0%,80%,100%{transform:scale(0.6);opacity:.4}40%{transform:scale(1);opacity:1} }
 
+/* diagnostics (shows the real reason when the mail service can't be reached) */
+.diag-box {
+  display:none; margin:-6px 0 14px; padding:9px 12px;
+  background:rgba(255,55,95,0.07); border:1px solid rgba(255,55,95,0.22);
+  border-radius:10px; color:var(--accent3);
+  font-family:var(--font-mono); font-size:0.66rem; line-height:1.7;
+  white-space:pre-wrap; word-break:break-all; direction:ltr; text-align:left;
+}
+
 /* dev notice */
 .dev-notice {
   text-align:center; font-size:0.68rem; color:var(--accent3);
@@ -638,6 +647,8 @@ header { text-align:center; padding:44px 0 32px; }
     </div>
   </div>
 
+  <div class="diag-box" id="diagBox"></div>
+
   <div class="custom-row" onclick="openCustomModal()">
     <span class="custom-label">اختار اسم بريد مخصص</span>
     <span class="custom-arrow">›</span>
@@ -677,7 +688,7 @@ header { text-align:center; padding:44px 0 32px; }
   </div>
 </div>
 
-<div class="footer">جميع الحقوق محفوظة للمطور 2026 © A.G</div>
+<div class="footer">جميع الحقوق محفوظة للمطور 2026 © A.G &nbsp;·&nbsp; v2-mailtm</div>
 </div>
 
 <!-- ══ MESSAGE MODAL ══ -->
@@ -940,6 +951,28 @@ function toastForError(e) {
   else showToast('خطأ في الاتصال');
 }
 
+// بيشرح سبب الفشل بالظبط (HTTP كود / مهلة / الشبكة محجوبة) وبيظهره تحت الإيميل
+function describeErr(b, step, e) {
+  let why;
+  if (e && e.status) {
+    const m = e.data && (e.data.message || e.data.detail || e.data['hydra:description']);
+    why = 'HTTP ' + e.status + (m ? ' - ' + String(m).slice(0, 120) : '');
+  } else if (e && e.name === 'AbortError') {
+    why = 'timeout (15s)';
+  } else if (e && /Failed to fetch|NetworkError|Load failed/i.test(e.message || '')) {
+    why = 'network/CORS blocked (' + e.message + ')';
+  } else {
+    why = (e && e.message) ? e.message : String(e);
+  }
+  return b.replace('https://', '') + ' [' + step + '] → ' + why;
+}
+function showDiag(lines) {
+  const el = document.getElementById('diagBox');
+  if (!el) return;
+  el.textContent = (lines || []).join('\n');
+  el.style.display = (lines && lines.length) ? 'block' : 'none';
+}
+
 // ── Init ───────────────────────────────────────────────────────
 async function init() {
   // Try restore saved session
@@ -972,14 +1005,18 @@ async function generateNew() {
     'جاري الإنشاء <span class="dots"><span></span><span></span><span></span></span>';
 
   let lastErr = null;
+  const reasons = [];
+  showDiag([]);
   try {
     for (const b of PROVIDERS) {
+      let step = 'domains';
       try {
         const domains = await getDomains(b);
-        if (!domains.length) throw new Error('no domains');
+        if (!domains.length) throw new Error('no active public domains');
         const domain = domains[Math.floor(Math.random() * domains.length)];
         const address = randUser() + '@' + domain;
         const password = randPass();
+        step = 'create account';
         const token = await createAccount(b, address, password);
         base = b;
         emailAddress = address;
@@ -993,10 +1030,12 @@ async function generateNew() {
         return;
       } catch (e) {
         lastErr = e;
+        reasons.push(describeErr(b, step, e));
         console.warn('provider failed:', b, e);
       }
     }
     document.getElementById('emailText').textContent = 'خطأ — اضغط عنوان جديد';
+    showDiag(reasons);
     toastForError(lastErr);
     startUptime();
   } finally {
@@ -1102,7 +1141,8 @@ async function checkMail() {
       mail_timestamp: toTs(m.createdAt)
     }));
     updateInbox(messages);
-  } catch(e) {}
+    showDiag([]);
+  } catch(e) { showDiag([describeErr(base, 'inbox', e)]); }
   finally { btn.classList.remove('spin'); }
 }
 
