@@ -709,14 +709,7 @@ header { text-align:center; padding:44px 0 32px; }
         <input class="custom-input" id="customUser" type="text" placeholder="اسمك" maxlength="30" oninput="checkAvailability();updatePreview()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" dir="ltr">
         <span class="at-sign">@</span>
         <select class="domain-select" id="domainSelect" onchange="checkAvailability();updatePreview()">
-          <option value="grr.la">grr.la</option>
-          <option value="spam4.me">spam4.me</option>
-          <option value="guerrillamail.info">guerrillamail.info</option>
-          <option value="guerrillamail.net">guerrillamail.net</option>
-          <option value="guerrillamail.org">guerrillamail.org</option>
-          <option value="guerrillamail.biz">guerrillamail.biz</option>
-          <option value="guerrillamail.de">guerrillamail.de</option>
-          <option value="guerrillamailblock.com">guerrillamailblock.com</option>
+          <option value="">جاري التحميل...</option>
         </select>
       </div>
       <div class="email-preview-row" id="emailPreview" style="display:none">
@@ -836,25 +829,126 @@ header { text-align:center; padding:44px 0 32px; }
 
 <script>
 // ── State ──────────────────────────────────────────────────────
-const API = 'https://broad-night-4fd8.qwrtreu1245.workers.dev';
-const STORE_KEY = 'gm_session';
+// mail.tm و mail.gw نفس الـ API بالظبط — لو الأول مش شغال بنجرب التاني تلقائي
+const PROVIDERS = ['https://api.mail.tm', 'https://api.mail.gw'];
+const STORE_KEY = 'gm_session_v2';
 
+let base = PROVIDERS[0];
 let emailAddress = '';
-let emailSid_token = '';
+let mailPassword = '';
+let authToken = '';
 let messages = [];
+let domainsCache = {};
+let generating = false;
 let refreshInterval = null;
 let timerInterval = null;
 let secondsElapsed = 0;
-let checkTimer = null;
 let lastAvailUser = '';
+
+// ── API helpers ────────────────────────────────────────────────
+async function api(path, opts) {
+  const o = opts || {};
+  const headers = {};
+  if (o.body) headers['Content-Type'] = 'application/json';
+  if (o.token) headers['Authorization'] = 'Bearer ' + o.token;
+  const ctrl = new AbortController();
+  const killer = setTimeout(() => ctrl.abort(), 15000);
+  let res;
+  try {
+    res = await fetch((o.baseUrl || base) + path, {
+      method: o.method || 'GET',
+      headers: headers,
+      body: o.body ? JSON.stringify(o.body) : undefined,
+      signal: ctrl.signal
+    });
+  } finally { clearTimeout(killer); }
+  let data = null;
+  try { data = await res.json(); } catch (e) {}
+  if (!res.ok) {
+    const err = new Error('HTTP ' + res.status);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+// الـ API ممكن يرجّع Array عادي أو شكل hydra — بنتعامل مع الاتنين
+function listOf(d) {
+  if (Array.isArray(d)) return d;
+  return (d && d['hydra:member']) || [];
+}
+
+function randStr(len, chars) {
+  const out = [];
+  const buf = new Uint32Array(len);
+  (window.crypto || window.msCrypto).getRandomValues(buf);
+  for (let i = 0; i < len; i++) out.push(chars[buf[i] % chars.length]);
+  return out.join('');
+}
+function randUser() { return randStr(1, 'abcdefghijklmnopqrstuvwxyz') + randStr(9, 'abcdefghijklmnopqrstuvwxyz0123456789'); }
+function randPass() { return randStr(18, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'); }
+
+async function getDomains(b) {
+  if (domainsCache[b] && domainsCache[b].length) return domainsCache[b];
+  const arr = listOf(await api('/domains', { baseUrl: b }))
+    .filter(x => x && x.domain && x.isActive !== false && !x.isPrivate)
+    .map(x => x.domain);
+  if (arr.length) domainsCache[b] = arr;
+  return arr;
+}
+
+async function createAccount(b, address, password) {
+  await api('/accounts', { method: 'POST', body: { address: address, password: password }, baseUrl: b });
+  const t = await api('/token', { method: 'POST', body: { address: address, password: password }, baseUrl: b });
+  if (!t || !t.token) throw new Error('no token');
+  return t.token;
+}
+
+async function relogin() {
+  const t = await api('/token', { method: 'POST', body: { address: emailAddress, password: mailPassword } });
+  if (!t || !t.token) throw new Error('no token');
+  authToken = t.token;
+  saveSession();
+}
+
+// بيجرب الطلب، ولو التوكن انتهى (401) بيسجل دخول تاني ويعيد المحاولة مرة واحدة
+async function authed(path) {
+  try {
+    return await api(path, { token: authToken });
+  } catch (e) {
+    if (e.status !== 401) throw e;
+    await relogin();
+    return await api(path, { token: authToken });
+  }
+}
+
+function fromToString(f) {
+  if (!f) return '';
+  if (typeof f === 'string') return f;
+  const addr = f.address || '';
+  return f.name ? (addr ? f.name + ' <' + addr + '>' : f.name) : addr;
+}
+
+function toTs(iso) {
+  const t = new Date(iso).getTime();
+  return isNaN(t) ? 0 : Math.floor(t / 1000);
+}
+
+function toastForError(e) {
+  if (e && e.status === 429) showToast('طلبات كتير — استنى شوية وجرب تاني');
+  else showToast('خطأ في الاتصال');
+}
 
 // ── Init ───────────────────────────────────────────────────────
 async function init() {
   // Try restore saved session
   const saved = loadSession();
-  if (saved && saved.sid && saved.email) {
+  if (saved && saved.token && saved.email && saved.pass && PROVIDERS.indexOf(saved.base) !== -1) {
     emailAddress = saved.email;
-    emailSid_token = saved.sid;
+    mailPassword = saved.pass;
+    authToken = saved.token;
+    base = saved.base;
     secondsElapsed = saved.elapsed || 0;
     renderEmail(emailAddress);
     startUptime();
@@ -867,27 +961,46 @@ async function init() {
 
 // ── Generate new random email ──────────────────────────────────
 async function generateNew() {
+  if (generating) return;
+  generating = true;
   clearAll();
   secondsElapsed = 0;
   messages = [];
+  authToken = '';
   updateInbox([]);
   document.getElementById('emailText').innerHTML =
     'جاري الإنشاء <span class="dots"><span></span><span></span><span></span></span>';
 
+  let lastErr = null;
   try {
-    const res = await fetch(`${API}?f=get_email_address&lang=ar&ip=127.0.0.1&agent=Temp`);
-    const data = await res.json();
-    emailAddress = data.email_addr;
-    emailSid_token = data.sid_token;
-    renderEmail(emailAddress);
-    saveSession();
-    startUptime();
-    startAutoRefresh();
-    checkMail();
-  } catch (e) {
+    for (const b of PROVIDERS) {
+      try {
+        const domains = await getDomains(b);
+        if (!domains.length) throw new Error('no domains');
+        const domain = domains[Math.floor(Math.random() * domains.length)];
+        const address = randUser() + '@' + domain;
+        const password = randPass();
+        const token = await createAccount(b, address, password);
+        base = b;
+        emailAddress = address;
+        mailPassword = password;
+        authToken = token;
+        renderEmail(emailAddress);
+        saveSession();
+        startUptime();
+        startAutoRefresh();
+        checkMail();
+        return;
+      } catch (e) {
+        lastErr = e;
+        console.warn('provider failed:', b, e);
+      }
+    }
     document.getElementById('emailText').textContent = 'خطأ — اضغط عنوان جديد';
-    showToast('خطأ في الاتصال');
+    toastForError(lastErr);
     startUptime();
+  } finally {
+    generating = false;
   }
 }
 
@@ -895,40 +1008,31 @@ async function generateNew() {
 async function applyCustomEmail() {
   const user = document.getElementById('customUser').value.trim().toLowerCase();
   const domain = document.getElementById('domainSelect').value;
-  if (!user) return;
+  if (!user || !domain) return;
 
   const btn = document.getElementById('applyBtn');
   btn.disabled = true;
   btn.textContent = 'جاري التطبيق...';
 
   try {
-    // Step 1: set the username via API
-    const res = await fetch(`${API}?f=set_email_user&email_user=${encodeURIComponent(user)}&lang=ar&sid_token=${emailSid_token}`);
-    const data = await res.json();
+    const address = user + '@' + domain;
+    const password = randPass();
+    // لو الاسم متاح هيتسجل فورًا، ولو متاخد الـ API بيرجّع 422
+    const token = await createAccount(base, address, password);
 
-    if (data.email_addr) {
-      emailSid_token = data.sid_token || emailSid_token;
-
-      // Step 2: The API may return a different domain — force the chosen domain
-      // by constructing the address manually with user@selectedDomain
-      const apiUser = data.email_addr.split('@')[0]; // use API-confirmed username
-      const finalAddr = apiUser + '@' + domain;
-
-      emailAddress = finalAddr;
-      renderEmail(emailAddress);
-      saveSession();
-      messages = [];
-      updateInbox([]);
-      closeCustomModalBtn();
-      showToast('تم تطبيق الاسم المخصص');
-      checkMail();
-    } else {
-      showToast('الاسم ده مش متاح، جرب تاني');
-      btn.disabled = false;
-      btn.textContent = 'تطبيق الاسم المخصص';
-    }
+    emailAddress = address;
+    mailPassword = password;
+    authToken = token;
+    renderEmail(emailAddress);
+    saveSession();
+    messages = [];
+    updateInbox([]);
+    closeCustomModalBtn();
+    showToast('تم تطبيق الاسم المخصص');
+    checkMail();
   } catch (e) {
-    showToast('خطأ في الاتصال');
+    if (e && (e.status === 422 || e.status === 409)) showToast('الاسم ده مش متاح، جرب تاني');
+    else toastForError(e);
     btn.disabled = false;
     btn.textContent = 'تطبيق الاسم المخصص';
   }
@@ -940,7 +1044,7 @@ function updatePreview() {
   const domain = document.getElementById('domainSelect').value;
   const prev = document.getElementById('emailPreview');
   const addr = document.getElementById('previewAddr');
-  if (user) {
+  if (user && domain) {
     addr.textContent = user + '@' + domain;
     prev.style.display = 'flex';
   } else {
@@ -948,7 +1052,7 @@ function updatePreview() {
   }
 }
 
-// ── Availability check ────────────────────────────────────────
+// ── Name validation (التوفر بيتأكد وقت التطبيق) ───────────────
 function checkAvailability() {
   const user = document.getElementById('customUser').value.trim().toLowerCase();
   const domain = document.getElementById('domainSelect').value;
@@ -961,64 +1065,61 @@ function checkAvailability() {
     msg.textContent = 'أحرف إنجليزية وأرقام فقط (2-30 حرف)';
     btn.disabled = true; return;
   }
-
-  const checkKey = user + '@' + domain;
-  if (checkKey === lastAvailUser) return;
-  lastAvailUser = checkKey;
-
-  clearTimeout(checkTimer);
   msg.className = 'avail-msg avail-chk';
-  msg.textContent = 'جاري التحقق...';
-  btn.disabled = true;
+  msg.textContent = 'الاسم صالح — اضغط تطبيق وهنتأكد إنه متاح';
+  btn.disabled = !domain;
+}
 
-  checkTimer = setTimeout(async () => {
-    try {
-      // Save original username before checking
-      const origUser = emailAddress.split('@')[0];
-      const res = await fetch(`${API}?f=set_email_user&email_user=${encodeURIComponent(user)}&lang=ar&sid_token=${emailSid_token}`);
-      const data = await res.json();
-      if (data.email_addr) {
-        // Restore original so inbox keeps working while user decides
-        await fetch(`${API}?f=set_email_user&email_user=${encodeURIComponent(origUser)}&lang=ar&sid_token=${emailSid_token}`);
-        msg.className = 'avail-msg avail-ok';
-        msg.textContent = 'متاح! اضغط تطبيق';
-        btn.disabled = false;
-      } else {
-        msg.className = 'avail-msg avail-err';
-        msg.textContent = 'مش متاح، جرب اسم تاني';
-        btn.disabled = true;
-      }
-    } catch(e) {
-      msg.className = 'avail-msg avail-chk';
-      msg.textContent = 'تعذر التحقق';
-      btn.disabled = false;
-    }
-  }, 700);
+// ── Domains list for the custom-name modal ────────────────────
+async function loadDomainOptions() {
+  const sel = document.getElementById('domainSelect');
+  sel.innerHTML = '<option value="">جاري التحميل...</option>';
+  try {
+    const domains = await getDomains(base);
+    if (!domains.length) throw new Error('empty');
+    sel.innerHTML = domains.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+    const cur = (emailAddress.split('@')[1] || '');
+    if (domains.indexOf(cur) !== -1) sel.value = cur;
+  } catch (e) {
+    sel.innerHTML = '<option value="">تعذر تحميل الدومينات</option>';
+  }
+  updatePreview();
+  checkAvailability();
 }
 
 // ── Check mail ────────────────────────────────────────────────
 async function checkMail() {
-  if (!emailSid_token) return;
+  if (!authToken) return;
   const btn = document.getElementById('refreshBtn');
   btn.classList.add('spin');
   try {
-    const res = await fetch(`${API}?f=get_email_list&offset=0&sid_token=${emailSid_token}`);
-    const data = await res.json();
-    if (data.list && Array.isArray(data.list)) {
-      messages = data.list;
-      updateInbox(messages);
-    }
+    const data = await authed('/messages');
+    messages = listOf(data).map(m => ({
+      mail_id: String(m.id || '').replace(/[^\w-]/g, ''),
+      mail_from: fromToString(m.from),
+      mail_subject: String(m.subject || ''),
+      mail_excerpt: String(m.intro || ''),
+      mail_timestamp: toTs(m.createdAt)
+    }));
+    updateInbox(messages);
   } catch(e) {}
   finally { btn.classList.remove('spin'); }
 }
 
 // ── Open message ──────────────────────────────────────────────
 async function openMessage(id) {
-  if (!emailSid_token) return;
+  if (!authToken) return;
   try {
-    const res = await fetch(`${API}?f=fetch_email&email_id=${id}&sid_token=${emailSid_token}`);
-    const data = await res.json();
-    showMsgModal(data);
+    const d = await authed('/messages/' + encodeURIComponent(id));
+    const htmlArr = Array.isArray(d.html) ? d.html : (d.html ? [d.html] : []);
+    const html = htmlArr.join('');
+    showMsgModal({
+      mail_subject: d.subject,
+      mail_from: fromToString(d.from),
+      mail_timestamp: toTs(d.createdAt),
+      mail_body: html || d.text || '',
+      is_html: !!html
+    });
   } catch(e) { showToast('خطأ في تحميل الرسالة'); }
 }
 
@@ -1054,7 +1155,7 @@ function showMsgModal(d) {
   document.getElementById('mFrom').textContent = 'من: '+(d.mail_from||'—');
   document.getElementById('mTime').textContent = 'الوقت: '+fmtTime(d.mail_timestamp);
   const body = document.getElementById('mBody');
-  if (d.mail_body && d.mail_body.includes('<')) {
+  if (d.is_html && d.mail_body) {
     const ifr = document.createElement('iframe');
     ifr.sandbox = 'allow-same-origin';
     body.innerHTML = ''; body.appendChild(ifr); ifr.srcdoc = d.mail_body;
@@ -1112,10 +1213,13 @@ function clearAll() {
 
 // ── Session persistence (survive page close) ──────────────────
 function saveSession() {
+  if (!authToken) return;
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify({
       email: emailAddress,
-      sid: emailSid_token,
+      pass: mailPassword,
+      token: authToken,
+      base: base,
       elapsed: secondsElapsed,
       ts: Date.now()
     }));
@@ -1141,6 +1245,7 @@ function openCustomModal() {
   document.getElementById('applyBtn').textContent = 'تطبيق الاسم المخصص';
   lastAvailUser = '';
   document.getElementById('customOverlay').classList.add('open');
+  loadDomainOptions();
   setTimeout(() => document.getElementById('customUser').focus(), 200);
 }
 function closeCustomModal(e) { if (e.target === document.getElementById('customOverlay')) closeCustomModalBtn(); }
