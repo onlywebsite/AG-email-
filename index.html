@@ -9,7 +9,9 @@
 <!-- Apple Emoji font for all devices -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
-<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0c0f" media="(prefers-color-scheme: dark)">
 
 <style>
 /* ── الخط المخصص: مدمج داخل الصفحة (Latin + Arabic) بدون أي ملفات أو روابط خارجية ── */
@@ -326,6 +328,11 @@ header { text-align:center; padding:44px 0 32px; }
 @keyframes floatY { 0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)} }
 .empty-state p { font-size:0.82rem; line-height:1.9; }
 .empty-state span { font-size:0.72rem; color:var(--muted); }
+
+/* Inbox empty state: one centered line with an open-empty-envelope icon beside it */
+.empty-inbox{ display:flex; flex:1; align-items:center; justify-content:center; gap:12px; padding:20px; color:var(--muted); text-align:center; min-height:0; }
+.empty-inbox svg{ width:60px; height:60px; flex:0 0 auto; opacity:.8; filter:drop-shadow(0 3px 5px rgba(0,0,0,.22)); }
+.empty-inbox b{ font-weight:600; font-size:.98rem; line-height:1.6; }
 
 .msg-card {
   background:rgba(0,0,0,0.18); border:1px solid rgba(255,255,255,0.07);
@@ -1701,28 +1708,156 @@ body.light-mode:not(.high-contrast-text){
   --accent:#12803a; --accent2:#0a66d0; --accent3:#c81e46;
   --panel-bg:rgba(255,255,255,0.9);
 }
+
+/* ═════════════════════════════════════════════════════════════
+   الشريط الزجاجي السفلي (iOS / Instagram) + تحسينات السلاسة
+   ═════════════════════════════════════════════════════════════ */
+body{
+  --dock-bg:rgba(38,38,44,0.20);
+  --dock-bd:rgba(255,255,255,0.18);
+  --dock-hi:rgba(255,255,255,0.24);
+  --dock-lo:rgba(0,0,0,0.30);
+  --dock-pill:rgba(255,255,255,0.18);
+  --dock-shadow:0 16px 38px rgba(0,0,0,0.50), 0 2px 8px rgba(0,0,0,0.30);
+  --dock-ink:#ffffff;
+}
+body.light-mode{
+  --dock-bg:rgba(255,255,255,0.22);
+  --dock-bd:rgba(0,0,0,0.10);
+  --dock-hi:rgba(255,255,255,0.95);
+  --dock-lo:rgba(0,0,0,0.06);
+  --dock-pill:rgba(0,0,0,0.085);
+  --dock-shadow:0 16px 38px rgba(28,38,70,0.22), 0 2px 8px rgba(28,38,70,0.10);
+  --dock-ink:#111114;
+}
+
+.dock{
+  position:fixed; z-index:50; left:0; right:0; margin-inline:auto;
+  bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+  width:min(calc(100% - 28px), 188px); height:50px; padding:4px;
+  display:flex; align-items:center; gap:4px;
+  border-radius:999px; isolation:isolate;
+  background:var(--dock-bg);
+  -webkit-backdrop-filter:blur(8px) saturate(180%);
+          backdrop-filter:blur(8px) saturate(180%);
+  border:1px solid var(--dock-bd);
+  box-shadow:var(--dock-shadow), inset 0 1px 0 var(--dock-hi), inset 0 -1px 0 var(--dock-lo);
+  animation:dockIn .75s cubic-bezier(.22,1,.36,1) .25s both;
+  -webkit-user-select:none; user-select:none;
+}
+/* لمعة زجاجية خفيفة من فوق */
+.dock::before{
+  content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:-1;
+  background:linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.01) 46%, rgba(255,255,255,0) 100%);
+}
+body.light-mode .dock::before{ background:linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0) 100%); }
+@keyframes dockIn{
+  from{ opacity:0; transform:translate3d(0,28px,0) scale(.94); }
+  to  { opacity:1; transform:none; }
+}
+
+.dock-btn{
+  flex:1 1 0; min-width:0; height:100%;
+  display:grid; place-items:center; padding:0; margin:0;
+  border:0; border-radius:999px; background:transparent; cursor:pointer;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent; outline:none;
+  transition:background-color .35s cubic-bezier(.22,1,.36,1), transform .5s cubic-bezier(.34,1.56,.64,1);
+}
+.dock-btn svg{ width:24px; height:24px; display:block; pointer-events:none; transition:transform .5s cubic-bezier(.34,1.56,.64,1); }
+.dock-btn:active{ background:var(--dock-pill); transform:scale(.93); transition-duration:.12s; }
+.dock-btn:active svg{ transform:scale(.9); }
+.dock-btn:focus-visible{ background:var(--dock-pill); box-shadow:0 0 0 2px var(--dock-ink); }
+@media (hover:hover){ .dock-btn:hover{ background:var(--dock-pill); } }
+
+/* الألوان بتغلب قواعد الوضع الداكن العامة (color/border على *) */
+:root body .dock{ border-color:var(--dock-bd) !important; }
+:root body .dock-btn{ color:var(--dock-ink) !important; border-color:transparent !important; }
+body.high-contrast-text .dock{ background:#000; -webkit-backdrop-filter:none; backdrop-filter:none; }
+body.light-mode.high-contrast-text .dock{ background:#fff; }
+:root body.high-contrast-text .dock{ border-color:#fff !important; }
+:root body.light-mode.high-contrast-text .dock{ border-color:#000 !important; }
+
+/* مساحة تحت المحتوى عشان الشريط ميغطيش آخر الصفحة، والـ toast فوقه */
+.container{ padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px)); }
+.toast{ bottom:calc(78px + env(safe-area-inset-bottom, 0px)); }
+.uptime-section{ margin-top:0; }
+
+/* ═════ سلاسة: شيل اللي بيرسم كل فريم من غير فرق ظاهر ═════ */
+/* الشبكة الباهتة كانت بتتحرك بـ background-position (إعادة رسم لشاشة كاملة كل فريم، طول الوقت) */
+body::before{ animation:none !important; }
+/* البلور على الكروت/المودال/الرسائل مكنش بيبان (خلفياتها شبه معتمة) وبيتقل التمرير */
+.card, .modal, .msg-card, .email-pill, .uptime-section{ -webkit-backdrop-filter:none; backdrop-filter:none; }
+/* الفقرات الطويلة تحت: متترسمش إلا لما توصلها */
+html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+.empty-state .btn{ flex:0 0 auto; align-self:center; }
+
+/* ═════ منع "فخ السكرول" على اللمس ═════
+   صندوق الوارد كان له سكرول داخلي: الصباع اللي ينزل جواه بيمسك السكرول الداخلي بدل الصفحة.
+   على الموبايل/اللمس الصندوق بيطول مع الرسايل (نفس الشكل المربع لو الرسايل قليلة) والصفحة كلها هي اللي بتسكرول. */
+@media (pointer:coarse), (max-width:700px){
+  .inbox-section{ height:auto; min-height:max(320px, min(752px, calc(100vw - 28px))); }
+  .inbox-section .msgs{ overflow:visible; flex:1 0 auto; min-height:0; }
+}
+/* عنصر "عدد الزوار" جوه لوحة الإعدادات كان فاضل قابل للمس وهي مقفولة (visibility:visible صريحة) */
+.settings-panel:not(.active){ pointer-events:none; }
+
+/* ═════ رأس الموقع: الاسم + زرار الإعدادات ثابتين فوق وصغيرين ═════
+   الاسم بقى كبسولة زجاجية بنفس خامة زرار الإعدادات (عشان يفضل مقروء والمحتوى بيعدّي تحته)،
+   وهو وزرار الإعدادات fixed فمبياخدوش مساحة، وقلّلت الفراغ فوق المحتوى. */
+.site-title{
+  position:fixed; top:20px; right:20px; z-index:60;
+  height:42px; padding:0 16px; border-radius:21px;
+  display:flex; align-items:center; direction:ltr;
+  background:var(--btn-bg);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:1px solid var(--border-color); border-top:1px solid var(--border-top-color);
+  box-shadow:0 8px 25px var(--shadow-color), var(--glass-inset);
+  -webkit-background-clip:border-box; background-clip:border-box;
+  pointer-events:none; opacity:1;
+  transform:translate3d(0,0,0); transform-origin:100% 50%;
+  animation:popGlass 0.8s cubic-bezier(0.22,1,0.36,1) 0.35s backwards;
+  transition:transform 0.6s cubic-bezier(0.22,1,0.36,1), opacity 0.38s ease 0.05s;
+  will-change:transform, opacity;
+  -webkit-user-select:none; user-select:none;
+}
+/* عند النزول: يصغر ويلتصق بحافة الشاشة ويختفي، وعند الرجوع لأول الصفحة يرجع زي ما كان */
+body.hdr-collapsed .site-title{
+  transform:translate3d(58px,0,0) scale(0.5); opacity:0;
+  transition:transform 0.55s cubic-bezier(0.55,0,0.25,1), opacity 0.3s ease 0.12s;
+}
+.site-title-text{
+  font-size:1.05rem; font-weight:800; letter-spacing:-0.3px; line-height:1; white-space:nowrap;
+  background:linear-gradient(135deg,var(--text) 30%,var(--accent));
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+}
+header{ padding:56px 0 12px !important; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js" defer></script>
 </head>
 <body>
 <script>
+/* الثيم بيتبع إعداد النظام (فاتح/داكن) في كل مرة الموقع يتفتح، وبيتغير لحظياً لو النظام اتغير.
+   الزرار في الإعدادات بيبدّل لزيارة واحدة بس ومبيتحفظش. */
 (() => {
+  window.__gmSetThemeColor = (light) => {
+    try {
+      const c = light ? '#f2f2f7' : '#0b0c0f';
+      document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', c));
+    } catch (e) {}
+  };
   try {
-    const savedTheme = localStorage.getItem('gm_theme');
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    const hasManualChoice = savedTheme === 'light' || savedTheme === 'dark';
-    const useLight = hasManualChoice ? savedTheme === 'light' : !systemTheme.matches;
-    document.body.classList.toggle('light-mode', useLight);
-    if (!hasManualChoice) {
-      const syncWithSystem = (event) => {
-        if (localStorage.getItem('gm_theme') === 'light' || localStorage.getItem('gm_theme') === 'dark') return;
-        document.body.classList.toggle('light-mode', !event.matches);
-        const toggle = document.getElementById('glassPillToggle');
-        if (toggle) toggle.setAttribute('aria-checked', String(!event.matches));
-      };
-      if (systemTheme.addEventListener) systemTheme.addEventListener('change', syncWithSystem);
-      else if (systemTheme.addListener) systemTheme.addListener(syncWithSystem);
-    }
+    try { localStorage.removeItem('gm_theme'); } catch (e) {}
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = (dark) => {
+      document.body.classList.toggle('light-mode', !dark);
+      const toggle = document.getElementById('glassPillToggle');
+      if (toggle) toggle.setAttribute('aria-checked', String(!dark));
+      window.__gmSetThemeColor(!dark);
+    };
+    apply(mq.matches);
+    const onChange = (e) => apply(e.matches);
+    if (mq.addEventListener) mq.addEventListener('change', onChange);
+    else if (mq.addListener) mq.addListener(onChange);
   } catch (e) {}
 })();
 </script>
@@ -1867,7 +2002,7 @@ body.light-mode:not(.high-contrast-text){
         </div>
     </div>
 
-<div class="site-title" id="siteTitle">Ghoneim Mail</div>
+<div class="site-title" id="siteTitle"><span class="site-title-text">Ghoneim Mail</span></div>
 <div class="container">
 
 <!-- HEADER -->
@@ -1893,17 +2028,6 @@ body.light-mode:not(.high-contrast-text){
     </div>
   </div>
 
-  <div class="custom-row" onclick="openCustomModal()">
-    <span class="custom-label">اختار اسم بريد مخصص</span>
-    <span class="custom-arrow">›</span>
-  </div>
-
-  <!-- Send anonymous trigger -->
-  <div class="send-row" onclick="openComposeModal()">
-    <span class="send-label">إرسال رسالة مجهولة</span>
-    <span class="send-arrow">›</span>
-  </div>
-
   <!-- Uptime -->
   <div class="uptime-section">
     <span class="uptime-icon">⏱</span>
@@ -1926,10 +2050,7 @@ body.light-mode:not(.high-contrast-text){
     </div>
   </div>
   <div class="msgs" id="msgsList">
-    <div class="empty-state">
-      <span class="empty-icon">◻</span>
-      <p>الصندوق فارغ حالياً<br><span>ابعت رسالة على عنوانك وهتظهر هنا</span></p>
-    </div>
+    <div class="empty-inbox"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 27 L30 10.6 a3.2 3.2 0 0 1 4 0 L56 27 Z" fill="currentColor" fill-opacity=".24"/><path d="M8 27 H56 V50 a4 4 0 0 1 -4 4 H12 a4 4 0 0 1 -4 -4 Z" fill="currentColor" fill-opacity=".05"/><path d="M8 27 L32 44 L56 27 V50 a4 4 0 0 1 -4 4 H12 a4 4 0 0 1 -4 -4 Z" fill="currentColor" fill-opacity=".20"/><path d="M9.5 52.5 L25.5 40 M54.5 52.5 L38.5 40" stroke-opacity=".7"/></svg><b>لا يوجد رسائل بعد</b></div>
   </div>
 </div>
 
@@ -1956,6 +2077,16 @@ body.light-mode:not(.high-contrast-text){
 
 <div class="footer">جميع الحقوق محفوظة للمطور 2026 © A.G</div>
 </div>
+
+<!-- ══ BOTTOM GLASS DOCK (iOS style) ══ -->
+<nav class="dock" id="dock" aria-label="الإجراءات">
+  <button type="button" class="dock-btn" id="dockCustom" onclick="openCustomModal()" aria-label="اختار اسم بريد مخصص" title="اختار اسم بريد مخصص">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></svg>
+  </button>
+  <button type="button" class="dock-btn" id="dockSend" onclick="openComposeModal()" aria-label="إرسال رسالة مجهولة" title="إرسال رسالة مجهولة">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.2h18"/><path d="M6.8 11.2 8.3 5a1.6 1.6 0 0 1 1.55-1.2h4.3A1.6 1.6 0 0 1 15.7 5l1.5 6.2"/><circle cx="7.6" cy="16.9" r="2.9"/><circle cx="16.4" cy="16.9" r="2.9"/><path d="M10.5 16.5q1.5-1 3 0"/></svg>
+  </button>
+</nav>
 
 <!-- ══ MESSAGE MODAL ══ -->
 <div class="overlay" id="msgOverlay" onclick="closeMsgModal(event)">
@@ -2162,6 +2293,7 @@ function setInboxStatus(text, tone = '') {
 }
 
 function showInboxError(message, action = 'checkMail()') {
+  inboxSig = null;
   document.getElementById('msgsList').innerHTML = `
     <div class="empty-state">
       <span class="empty-icon">!</span>
@@ -2340,6 +2472,16 @@ function checkAvailability() {
   }, 700);
 }
 
+// ── Hide Guerrilla Mail system welcome message ────────────────
+// Only the automatic welcome message from Guerrilla Mail itself is dropped.
+// Every other message (sent by real people/services) is untouched.
+function isGuerrillaWelcome(m) {
+  if (!m) return false;
+  const from = String(m.mail_from || '');
+  const subj = String(m.mail_subject || '');
+  return /no-reply@guerrillamail/i.test(from) || /welcome to guerrilla\s*mail/i.test(subj);
+}
+
 // ── Check mail ────────────────────────────────────────────────
 async function checkMail(options = {}) {
   if (!emailSid_token || isCheckingMail || isGenerating) return false;
@@ -2352,10 +2494,10 @@ async function checkMail(options = {}) {
     const data = await apiRequest({ f: 'get_email_list', offset: 0, sid_token: emailSid_token });
     emailSid_token = data.sid_token || emailSid_token;
     if (Array.isArray(data.list)) {
-      messages = data.list;
+      messages = data.list.filter(m => !isGuerrillaWelcome(m));
       updateInbox(messages);
       saveSession();
-      setInboxStatus(messages.length ? 'تم تحديث صندوق الوارد' : 'الاتصال يعمل؛ لا توجد رسائل بعد', 'ok');
+      setInboxStatus(messages.length ? 'تم تحديث صندوق الوارد' : '', 'ok');
       succeeded = true;
     } else {
       // The current Worker returns no list when its stored Guerrilla Mail session has expired.
@@ -2403,11 +2545,15 @@ function renderEmail(addr) {
   document.getElementById('copyIcon').textContent = '⎘';
 }
 
+var inboxSig = null;
 function updateInbox(msgs) {
   const list = document.getElementById('msgsList');
   const badge = document.getElementById('badge');
+  const sig = (msgs && msgs.length) ? msgs.map(m => [m.mail_id, m.mail_timestamp, m.mail_subject, m.mail_excerpt, m.mail_from].join('\u0001')).join('\u0002') : '';
+  if (sig === inboxSig && list.childElementCount) return;
+  inboxSig = sig;
   if (!msgs || !msgs.length) {
-    list.innerHTML = `<div class="empty-state"><span class="empty-icon">◻</span><p>الصندوق فارغ حالياً<br><span>ابعت رسالة على عنوانك وهتظهر هنا</span></p></div>`;
+    list.innerHTML = `<div class="empty-inbox"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 27 L30 10.6 a3.2 3.2 0 0 1 4 0 L56 27 Z" fill="currentColor" fill-opacity=".24"/><path d="M8 27 H56 V50 a4 4 0 0 1 -4 4 H12 a4 4 0 0 1 -4 -4 Z" fill="currentColor" fill-opacity=".05"/><path d="M8 27 L32 44 L56 27 V50 a4 4 0 0 1 -4 4 H12 a4 4 0 0 1 -4 -4 Z" fill="currentColor" fill-opacity=".20"/><path d="M9.5 52.5 L25.5 40 M54.5 52.5 L38.5 40" stroke-opacity=".7"/></svg><b>لا يوجد رسائل بعد</b></div>`;
     badge.classList.remove('on'); return;
   }
   badge.textContent = msgs.length; badge.classList.add('on');
@@ -2753,7 +2899,7 @@ const baseVisits = 29668;
             .catch(() => useLocalVisitFallback());
 
 // ===== ترجمة نصوص الموقع نفسه (عربي ⇄ إنجليزي) =====
-const SITE_EN = {"بريد مؤقت · أمن · مجاني": "Temp Mail · Secure · Free", "ارسل رسائل مجهولة الهوية": "Send anonymous messages", "سريع": "Fast", "بدون إعلانات": "No ads", "دعم جميع مواقع التواصل": "Works with all social sites", "استخدام بلا حدود": "Unlimited use", "حول": "About", "بريدك المؤقت": "Your temporary email", "جاري الإنشاء": "Generating", "عنوان جديد": "New address", "نسخ": "Copy", "اختار اسم بريد مخصص": "Choose a custom email name", "إرسال رسالة مجهولة": "Send an anonymous message", "وقت النشاط": "Uptime", "نشط دائماً": "Always active", "صندوق الوارد": "Inbox", "جارٍ الاتصال": "Connecting", "تحديث": "Refresh", "الصندوق فارغ حالياً": "The inbox is empty", "ابعت رسالة على عنوانك وهتظهر هنا": "Send a message to your address and it will show up here", "جميع الحقوق محفوظة للمطور 2026 © A.G": "All rights reserved to the developer 2026 © A.G", "اختار اسم بريدك": "Choose your email name", "اختار اسم مخصص — لو متاح هيتطبق فوراً": "Pick a custom name — applied instantly if available", "المعاينة:": "Preview:", "تطبيق الاسم المخصص": "Apply custom name", "الرسالة هتتبعت من بريدك المؤقت الشغال دلوقتي": "The message will be sent from your current temporary email", "من": "From", "مجهول": "Anonymous", "اسم المرسل (اختياري)": "Sender name (optional)", "عنوان البريد الظاهر للمستلم (اختياري)": "Email shown to the recipient (optional)", "إلى": "To", "الموضوع": "Subject", "نص الرسالة": "Message", "⚙ إعدادات الإرسال": "⚙ Send settings", "إرسال الرسالة": "Send message", "هذه الخدمة قيد التطوير — قد ينتج عنها أخطاء": "This service is under development — errors may occur", "إعادة المحاولة": "Try again", "انتهت مهلة الاتصال. تحقق من الإنترنت ثم أعد المحاولة": "Connection timed out. Check your internet and try again", "خدمة البريد غير متاحة مؤقتاً. حاول بعد قليل": "The mail service is temporarily unavailable. Try again shortly", "استجابة خدمة البريد غير مفهومة. جرّب إعادة المحاولة": "Unexpected response from the mail service. Try again", "تعذر الاتصال بخدمة البريد. تحقق من الإنترنت ثم أعد المحاولة": "Could not reach the mail service. Check your internet and try again", "جارٍ استعادة البريد": "Restoring your email", "انتهت الجلسة؛ جارٍ تجديد البريد": "Session ended; renewing your email", "جارٍ إنشاء بريد مؤقت": "Creating a temporary email", "تم إنشاء البريد؛ جارٍ تحميل الرسائل": "Email created; loading messages", "تعذر إنشاء البريد": "Could not create the email", "تعذر الاتصال": "Connection failed", "انتهت الجلسة السابقة وتم إنشاء بريد جديد": "The previous session ended and a new email was created", "جاري التطبيق": "Applying", "تم تطبيق الاسم المخصص": "Custom name applied", "الاسم ده مش متاح، جرب تاني": "That name isn't available, try another", "أحرف إنجليزية وأرقام فقط (2-30 حرف)": "English letters and numbers only (2–30 chars)", "جاري التحقق": "Checking", "متاح! اضغط تطبيق": "Available! Tap apply", "مش متاح، جرب اسم تاني": "Not available, try another name", "تم تحديث صندوق الوارد": "Inbox updated", "الاتصال يعمل؛ لا توجد رسائل بعد": "Connected; no messages yet", "انتهت صلاحية جلسة البريد. أنشئ عنواناً جديداً للمتابعة": "Email session expired. Create a new address to continue", "انتهت الجلسة السابقة؛ جارٍ إنشاء بريد جديد": "Previous session ended; creating a new email", "بدون موضوع": "No subject", "فارغة": "Empty", "تم نسخ البريد الإلكتروني": "Email copied", "فشل النسخ": "Copy failed", "خدمة الإرسال غير متاحة حالياً؛ استقبال البريد ما زال يعمل": "Sending is unavailable right now; receiving still works", "انتظر لحد ما الإيميل يتولد": "Wait until the email is generated", "جاري الإرسال": "Sending", "تم الإرسال بنجاح": "Sent successfully", "الرسالة اتبعتت": "Message sent", "فشل الإرسال": "Send failed", "اسمك": "Your name", "مثلاً: شخص مجهول": "e.g. An anonymous person", "اكتب موضوع الرسالة": "Write the subject", "اكتب رسالتك هنا": "Write your message here"};
+const SITE_EN = {"لا يوجد رسائل بعد": "No messages yet", "بريد مؤقت · أمن · مجاني": "Temp Mail · Secure · Free", "ارسل رسائل مجهولة الهوية": "Send anonymous messages", "سريع": "Fast", "بدون إعلانات": "No ads", "دعم جميع مواقع التواصل": "Works with all social sites", "استخدام بلا حدود": "Unlimited use", "حول": "About", "بريدك المؤقت": "Your temporary email", "جاري الإنشاء": "Generating", "عنوان جديد": "New address", "نسخ": "Copy", "اختار اسم بريد مخصص": "Choose a custom email name", "إرسال رسالة مجهولة": "Send an anonymous message", "وقت النشاط": "Uptime", "نشط دائماً": "Always active", "صندوق الوارد": "Inbox", "جارٍ الاتصال": "Connecting", "تحديث": "Refresh", "الصندوق فارغ حالياً": "The inbox is empty", "ابعت رسالة على عنوانك وهتظهر هنا": "Send a message to your address and it will show up here", "جميع الحقوق محفوظة للمطور 2026 © A.G": "All rights reserved to the developer 2026 © A.G", "اختار اسم بريدك": "Choose your email name", "اختار اسم مخصص — لو متاح هيتطبق فوراً": "Pick a custom name — applied instantly if available", "المعاينة:": "Preview:", "تطبيق الاسم المخصص": "Apply custom name", "الرسالة هتتبعت من بريدك المؤقت الشغال دلوقتي": "The message will be sent from your current temporary email", "من": "From", "مجهول": "Anonymous", "اسم المرسل (اختياري)": "Sender name (optional)", "عنوان البريد الظاهر للمستلم (اختياري)": "Email shown to the recipient (optional)", "إلى": "To", "الموضوع": "Subject", "نص الرسالة": "Message", "⚙ إعدادات الإرسال": "⚙ Send settings", "إرسال الرسالة": "Send message", "هذه الخدمة قيد التطوير — قد ينتج عنها أخطاء": "This service is under development — errors may occur", "إعادة المحاولة": "Try again", "انتهت مهلة الاتصال. تحقق من الإنترنت ثم أعد المحاولة": "Connection timed out. Check your internet and try again", "خدمة البريد غير متاحة مؤقتاً. حاول بعد قليل": "The mail service is temporarily unavailable. Try again shortly", "استجابة خدمة البريد غير مفهومة. جرّب إعادة المحاولة": "Unexpected response from the mail service. Try again", "تعذر الاتصال بخدمة البريد. تحقق من الإنترنت ثم أعد المحاولة": "Could not reach the mail service. Check your internet and try again", "جارٍ استعادة البريد": "Restoring your email", "انتهت الجلسة؛ جارٍ تجديد البريد": "Session ended; renewing your email", "جارٍ إنشاء بريد مؤقت": "Creating a temporary email", "تم إنشاء البريد؛ جارٍ تحميل الرسائل": "Email created; loading messages", "تعذر إنشاء البريد": "Could not create the email", "تعذر الاتصال": "Connection failed", "انتهت الجلسة السابقة وتم إنشاء بريد جديد": "The previous session ended and a new email was created", "جاري التطبيق": "Applying", "تم تطبيق الاسم المخصص": "Custom name applied", "الاسم ده مش متاح، جرب تاني": "That name isn't available, try another", "أحرف إنجليزية وأرقام فقط (2-30 حرف)": "English letters and numbers only (2–30 chars)", "جاري التحقق": "Checking", "متاح! اضغط تطبيق": "Available! Tap apply", "مش متاح، جرب اسم تاني": "Not available, try another name", "تم تحديث صندوق الوارد": "Inbox updated", "الاتصال يعمل؛ لا توجد رسائل بعد": "Connected; no messages yet", "انتهت صلاحية جلسة البريد. أنشئ عنواناً جديداً للمتابعة": "Email session expired. Create a new address to continue", "انتهت الجلسة السابقة؛ جارٍ إنشاء بريد جديد": "Previous session ended; creating a new email", "بدون موضوع": "No subject", "فارغة": "Empty", "تم نسخ البريد الإلكتروني": "Email copied", "فشل النسخ": "Copy failed", "خدمة الإرسال غير متاحة حالياً؛ استقبال البريد ما زال يعمل": "Sending is unavailable right now; receiving still works", "انتظر لحد ما الإيميل يتولد": "Wait until the email is generated", "جاري الإرسال": "Sending", "تم الإرسال بنجاح": "Sent successfully", "الرسالة اتبعتت": "Message sent", "فشل الإرسال": "Send failed", "اسمك": "Your name", "مثلاً: شخص مجهول": "e.g. An anonymous person", "اكتب موضوع الرسالة": "Write the subject", "اكتب رسالتك هنا": "Write your message here"};
 const SITE_PREFIX = [["من:", "From:"], ["الوقت:", "Time:"]];
 const trMap = new Map();      // node -> {orig, tr}
 const phMap = new Map();      // element -> {orig, tr}
@@ -2838,6 +2984,12 @@ function updateLanguage() {
   $('langSliderToggle').setAttribute('aria-label', t.languageLabel);
   $('contrastBtn').setAttribute('aria-label', t.contrast);
   $('invertBtn').setAttribute('aria-label', t.invertColors);
+  { const dc = $('dockCustom'), ds = $('dockSend'), dk = $('dock');
+    const L = isEn ? ['Choose a custom email name', 'Send an anonymous message', 'Actions']
+                   : ['اختار اسم بريد مخصص', 'إرسال رسالة مجهولة', 'الإجراءات'];
+    if (dc) { dc.setAttribute('aria-label', L[0]); dc.title = L[0]; }
+    if (ds) { ds.setAttribute('aria-label', L[1]); ds.title = L[1]; }
+    if (dk) dk.setAttribute('aria-label', L[2]); }
   // موضع اليسار هو الفاتح، وموضع اليمين هو المظلم.
   $('dark-mode-label').innerText = t.modeLight;
   $('light-mode-label').innerText = t.modeDark;
@@ -3000,7 +3152,7 @@ const settingsBtn = document.getElementById('settingsBtn');
             if (document.body.classList.contains('light-mode') === toLight) return;
             document.body.classList.add('theme-transitioning');
             document.body.classList.toggle('light-mode', toLight);
-            try { localStorage.setItem('gm_theme', toLight ? 'light' : 'dark'); } catch (_) {}
+            if (window.__gmSetThemeColor) window.__gmSetThemeColor(toLight);
             clearTimeout(themeTimer);
             themeTimer = setTimeout(() => document.body.classList.remove('theme-transitioning'), 480);
         }
@@ -3403,6 +3555,24 @@ function applyInitialEnglishSettings() {
 }
 applyInitialEnglishSettings();
 
+})();
+</script>
+
+<script>
+/* اسم الموقع: يصغر ويختفي عند النزول، ويرجع لما تطلع لأول الصفحة (فيه هامش بسيط عشان ميرعّش) */
+(() => {
+  const body = document.body;
+  let collapsed = false, ticking = false;
+  const update = () => {
+    ticking = false;
+    const y = window.pageYOffset || document.documentElement.scrollTop || 0;
+    if (!collapsed && y > 48) { collapsed = true; body.classList.add('hdr-collapsed'); }
+    else if (collapsed && y < 16) { collapsed = false; body.classList.remove('hdr-collapsed'); }
+  };
+  window.addEventListener('scroll', () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  }, { passive: true });
+  update();
 })();
 </script>
 </body>
