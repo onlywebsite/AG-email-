@@ -118,7 +118,7 @@
   isolation: isolate;
   --fg: #fff;
   color: var(--fg);
-  font-family: 'Cairo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: 'iPhone Ar', -apple-system, 'SF Pro Arabic', system-ui, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   -webkit-text-size-adjust: 100%;
@@ -136,7 +136,6 @@
 .cs[data-theme="white"] .cs-card { box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2), inset 0 -1px 2px rgba(0, 0, 0, 0.15); }
 .cs[data-theme="white"] .cs-slot { box-shadow: 0 16px 30px rgba(30, 40, 80, 0.3); }
 .cs[data-theme="white"] .cs-timer { background: rgba(184, 134, 11, 0.16); border-color: rgba(138, 101, 8, 0.45); }
-.cs[data-theme="white"] .cs-meteors { display: none; }
 
 /* ---- backgrounds: one layer per theme, cross-faded ---- */
 .cs-bg { position: absolute; inset: 0; z-index: -3; opacity: 0; transition: opacity 0.9s var(--ease); overflow: hidden; }
@@ -164,33 +163,23 @@
     radial-gradient(72% 42% at 92% 104%, rgba(140, 166, 255, 0.30) 0%, rgba(140, 166, 255, 0) 70%),
     linear-gradient(165deg, #ffffff 0%, #f1f3fa 42%, #e2e7f3 100%);
 }
-/* a slow glint that crosses the glossy themes */
-.cs-bg.t-blue::after, .cs-bg.t-pink::after {
-  content: ""; position: absolute; inset: -20% -60%;
-  background: linear-gradient(112deg, transparent 40%, rgba(255, 255, 255, 0.13) 50%, transparent 60%);
-  transform: translateX(-70%);
-  animation: csGlint 11s ease-in-out 1.2s infinite;
-}
-@keyframes csGlint { 0%, 55% { transform: translateX(-70%); } 100% { transform: translateX(70%); } }
 
-/* ---- shooting stars (same as the portfolio) ---- */
-.cs-meteors { position: absolute; inset: 0; z-index: -2; pointer-events: none; overflow: hidden; }
-.cs-meteor {
-  position: absolute; top: -5%; right: -5%; width: 15px; height: 1px;
-  background: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgba(255, 255, 255, 1) 100%);
-  opacity: 0; animation: csMeteor 20s linear 3.5s infinite;
+
+
+/* ---- "make your own page" circle: same glass circle as the main site's settings button ---- */
+.cs-home {
+  position: absolute; top: 18px; left: 18px; z-index: 6; width: 42px; height: 42px; border-radius: 50%;
+  display: grid; place-items: center; color: var(--fg); text-decoration: none;
+  background: rgba(255, 255, 255, 0.14); -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.28); border-top-color: rgba(255, 255, 255, 0.45);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.25);
+  transition: transform 0.4s var(--ease), box-shadow 0.4s ease;
+  -webkit-tap-highlight-color: transparent;
 }
-.cs-meteor::after {
-  content: ""; position: absolute; right: 0; top: -0.5px; width: 1.5px; height: 1.5px;
-  background: #fff; border-radius: 50%; box-shadow: 0 0 3px 1px #fff, 0 0 6px 2px #4db8ff;
-}
-.cs-meteor.m2 { top: -2%; right: -15%; width: 8px; animation-delay: 4.5s; }
-@keyframes csMeteor {
-  0% { transform: rotate(135deg) translateX(-50px); opacity: 0; }
-  2% { opacity: 1; }
-  75% { transform: rotate(135deg) translateX(1800px); opacity: 0; }
-  100% { transform: rotate(135deg) translateX(1800px); opacity: 0; }
-}
+.cs-home:hover { transform: translateY(-2px) scale(1.05); }
+.cs-home:active { transform: scale(0.92); transition-duration: 0.1s; }
+.cs-home svg { width: 20px; height: 20px; display: block; }
+.cs[data-theme="white"] .cs-home { background: rgba(18, 19, 26, 0.08); border-color: rgba(18, 19, 26, 0.16); box-shadow: 0 8px 22px rgba(30, 40, 80, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.6); }
 
 /* ---- layout ---- */
 .cs-scroll {
@@ -237,11 +226,6 @@
 }
 .cs-bio:empty { display: none; }
 
-.cs-wish {
-  font-family: 'Dancing Script', cursive; font-size: 15.2px; margin-top: 22px; color: var(--fg);
-  text-shadow: var(--wish-shadow, 0 0 6px rgba(255, 255, 255, 0.35));
-}
-.cs[lang="ar"] .cs-wish { font-family: 'Aref Ruqaa', 'Cairo', serif; font-size: 18px; }
 
 /* ---- the deck ---- */
 .cs-deck {
@@ -397,7 +381,7 @@
 
 /* preview inside the builder's phone: static (the phone itself does the moving) */
 .cs.is-preview *, .cs.is-preview *::before, .cs.is-preview *::after { animation: none !important; }
-.cs.is-preview .cs-meteors, .cs.is-preview .cs-overlay, .cs.is-preview .cs-pop { display: none; }
+.cs.is-preview .cs-home, .cs.is-preview .cs-overlay, .cs.is-preview .cs-pop { display: none; }
 .cs.is-preview .cs-share-btn { -webkit-backdrop-filter: none; backdrop-filter: none; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -505,25 +489,6 @@ a { color: inherit; }
   mix-blend-mode: screen;
 }
 body.light-mode .bg-amb { mix-blend-mode: multiply; opacity: 0.55; }
-.bg-meteors { position: absolute; inset: 0; overflow: hidden; }
-body.light-mode .bg-meteors { display: none; }
-.bg-meteors .m {
-  position: absolute; top: -5%; right: -5%; width: 15px; height: 1px;
-  background: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgba(255, 255, 255, 1) 100%);
-  opacity: 0; animation: bMeteor 20s linear 3.5s infinite;
-}
-.bg-meteors .m::after {
-  content: ""; position: absolute; right: 0; top: -0.5px; width: 1.5px; height: 1.5px;
-  background: #fff; border-radius: 50%; box-shadow: 0 0 3px 1px #fff, 0 0 6px 2px #4db8ff;
-}
-.bg-meteors .m.b { top: -2%; right: -15%; width: 8px; animation-delay: 9.5s; }
-.bg-meteors .m.c { top: 18%; right: -8%; width: 11px; animation-delay: 15s; animation-duration: 24s; }
-@keyframes bMeteor {
-  0% { transform: rotate(135deg) translateX(-50px); opacity: 0; }
-  2% { opacity: 1; }
-  75% { transform: rotate(135deg) translateX(2200px); opacity: 0; }
-  100% { transform: rotate(135deg) translateX(2200px); opacity: 0; }
-}
 
 /* ---------- settings (same glass button + panel as the portfolio) ---------- */
 .settings-icon {
@@ -634,7 +599,6 @@ body.light-mode .stage-ground { background: radial-gradient(closest-side, rgba(0
   100% { opacity: 1; transform: perspective(1200px) translateY(0) rotateY(0deg) rotateX(0deg) scale(1); }
 }
 html.is-scrolling .phone-float, html.settings-open .phone-float { animation-play-state: paused; }
-html.settings-open .bg-meteors .m { animation-play-state: paused; }
 .phone { position: absolute; left: 0; top: 0; width: 412px; height: 834px; transform-origin: 0 0; }
 .ph-rot { position: absolute; inset: 0; will-change: transform; transform: perspective(1700px); }
 .ph-ext {
@@ -967,8 +931,8 @@ body.light-mode .copyright { color: #6d6a64; }
   .step { padding: 18px 14px 16px; }
 }
 
-/* the phone preview speaks the same typeface as the rest of the builder */
-.cs, .cs * { font-family: var(--font) !important; }
+/* the whole client page (and its preview) uses the iPhone Ar font */
+.cs, .cs * { font-family: 'iPhone Ar', -apple-system, 'SF Pro Arabic', system-ui, 'Segoe UI', sans-serif !important; }
 
 </style>
 </head>
@@ -1011,7 +975,6 @@ body.light-mode .copyright { color: #6d6a64; }
   <div class="bg-base"></div>
   <div class="bg-light"></div>
   <div class="bg-amb"></div>
-  <div class="bg-meteors"><span class="m"></span><span class="m b"></span><span class="m c"></span></div>
 </div>
 
 <button type="button" class="settings-icon" id="settingsBtn" aria-label="الإعدادات" data-aria="settings" aria-expanded="false" aria-controls="settingsPanel">
@@ -1653,8 +1616,8 @@ function createDeck(stack, opts) {
    Text is always set with textContent; links are re-validated upstream.
 ------------------------------------------------------------------- */
 const SITE_I18N = {
-  ar: { wish: 'يوماً سعيداً', redirect: 'سيتم انتقالك خلال', go: 'جاري الانتقال...', cancel: 'إلغاء', shareTitle: 'مشاركة الرابط', copy: 'نسخ الرابط', copied: 'تم النسخ!', apps: 'مشاركة عبر التطبيقات', shareAria: 'مشاركة', close: 'إغلاق', noShare: 'متصفحك لا يدعم هذه الميزة' },
-  en: { wish: 'Have a nice day', redirect: 'Redirecting in', go: 'Redirecting...', cancel: 'Cancel', shareTitle: 'Share link', copy: 'Copy link', copied: 'Copied!', apps: 'Share via apps', shareAria: 'Share', close: 'Close', noShare: 'Your browser does not support this' }
+  ar: { homeLabel: 'اصنع صفحتك الخاصة', redirect: 'سيتم انتقالك خلال', go: 'جاري الانتقال...', cancel: 'إلغاء', shareTitle: 'مشاركة الرابط', copy: 'نسخ الرابط', copied: 'تم النسخ!', apps: 'مشاركة عبر التطبيقات', shareAria: 'مشاركة', close: 'إغلاق', noShare: 'متصفحك لا يدعم هذه الميزة' },
+  en: { homeLabel: 'Create your own page', redirect: 'Redirecting in', go: 'Redirecting...', cancel: 'Cancel', shareTitle: 'Share link', copy: 'Copy link', copied: 'Copied!', apps: 'Share via apps', shareAria: 'Share', close: 'Close', noShare: 'Your browser does not support this' }
 };
 const REDIRECT_SECONDS = 3;
 
@@ -1678,7 +1641,7 @@ function renderSite(root, cfg, opts) {
   root.classList.toggle('is-preview', preview);
   root.classList.toggle('is-intro', !!opts.intro);
 
-  /* background layers (all four, cross-faded) + meteors */
+  /* background layers (all four, cross-faded) */
   const bgs = {};
   THEMES.forEach((th) => {
     const b = csEl('div', 'cs-bg t-' + th);
@@ -1686,11 +1649,6 @@ function renderSite(root, cfg, opts) {
     bgs[th] = b;
     root.appendChild(b);
   });
-  const meteors = csEl('div', 'cs-meteors');
-  meteors.setAttribute('aria-hidden', 'true');
-  meteors.appendChild(csEl('div', 'cs-meteor'));
-  meteors.appendChild(csEl('div', 'cs-meteor m2'));
-  root.appendChild(meteors);
 
   const scroll = csEl('div', 'cs-scroll');
   const main = csEl('main', 'cs-main');
@@ -1701,11 +1659,14 @@ function renderSite(root, cfg, opts) {
   deckEl.setAttribute('role', 'group');
   const timer = csEl('div', 'cs-timer');
   timer.setAttribute('aria-live', 'polite');
-  const wish = opts.wish === false ? null : csEl('div', 'cs-wish');
   main.append(avatar, nameEl, bioEl, deckEl, timer);
-  if (wish) main.append(wish);
   scroll.append(main);
   root.appendChild(scroll);
+
+  const home = csEl('a', 'cs-home');
+  home.href = opts.homeUrl || 'builder.html';
+  home.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+  root.appendChild(home);
 
   const overlay = csEl('div', 'cs-overlay');
   const pop = csEl('div', 'cs-pop');
@@ -1730,7 +1691,7 @@ function renderSite(root, cfg, opts) {
   root.append(overlay, pop);
 
   const T = () => SITE_I18N[cur.lang] || SITE_I18N.ar;
-  const fmt = (n) => n.toLocaleString(cur.lang === 'en' ? 'en-US' : 'ar-EG');
+  const fmt = (n) => n.toLocaleString('en-US');
 
   /* ---------- redirect counter ---------- */
   let redirecting = false;
@@ -1913,7 +1874,8 @@ function renderSite(root, cfg, opts) {
     nameEl.classList.toggle('is-ar', /[؀-ۿ]/.test(cur.name || ''));
     nameEl.style.opacity = cur.ghostName ? '0.45' : '';
     bioEl.textContent = cur.bio || '';
-    if (wish) wish.textContent = t.wish;
+    home.setAttribute('aria-label', t.homeLabel);
+    home.title = t.homeLabel;
 
     avatar.textContent = '';
     if (cur.avatarUrl) {
@@ -2044,7 +2006,7 @@ function renderSite(root, cfg, opts) {
       s1t: 'الاسم والصورة', s1d: 'يظهران في أعلى صفحتك',
       name: 'الاسم', namePh: 'اسمك أو اسم نشاطك', bio: 'نبذة قصيرة', optional: 'اختياري', bioPh: 'جملة تعرّف بك',
       photo: 'الصورة', photoPick: 'اختر صورة', photoChange: 'تغيير الصورة', photoRemove: 'حذف',
-      photoHint: 'اختياري. تُقصّ الصورة تلقائيًا على شكل دائرة.', photoType: 'اختر ملف صورة فقط.', photoSize: 'الصورة كبيرة جدًا. اختر صورة أقل من ١٢ ميجابايت.', photoFail: 'تعذّر قراءة الصورة. جرّب صورة أخرى.',
+      photoHint: 'اختياري. تُقصّ الصورة تلقائيًا على شكل دائرة.', photoType: 'اختر ملف صورة فقط.', photoSize: 'الصورة كبيرة جدًا. اختر صورة أقل من 12 ميجابايت.', photoFail: 'تعذّر قراءة الصورة. جرّب صورة أخرى.',
       s2t: 'اختر برامجك', s2d: 'اضغط على البرنامج لإضافته أو إزالته',
       s3t: 'روابطك', s3d: 'الصق الرابط أو اكتب اسم الحساب',
       s3empty: 'اختر برنامجًا من الخطوة السابقة ليظهر حقله هنا.',
@@ -2059,11 +2021,11 @@ function renderSite(root, cfg, opts) {
       shareTitle: 'صفحة روابطي',
       eName: 'اكتب اسمك أولًا.', eNone: 'اختر برنامجًا واحدًا على الأقل.', eFix: 'صحّح الروابط المُشار إليها أدناه.', eCustomName: 'اكتب اسم المنصة.',
       eRequired: 'أدخل الرابط.',
-      err: { url: 'الرابط غير صحيح.', host: (n) => 'هذا ليس رابط ' + n + '.', path: 'أضف اسم الحساب بعد النطاق.', handle: 'اسم الحساب غير صحيح.', email: 'البريد الإلكتروني غير صحيح.', phone: 'رقم الهاتف غير صحيح.', phoneLocal: 'اكتب الرقم مع رمز الدولة، مثل 20100…', phoneLen: 'الرقم يجب أن يكون من ٨ إلى ١٥ رقمًا.' },
+      err: { url: 'الرابط غير صحيح.', host: (n) => 'هذا ليس رابط ' + n + '.', path: 'أضف اسم الحساب بعد النطاق.', handle: 'اسم الحساب غير صحيح.', email: 'البريد الإلكتروني غير صحيح.', phone: 'رقم الهاتف غير صحيح.', phoneLocal: 'اكتب الرقم مع رمز الدولة، مثل 20100…', phoneLen: 'الرقم يجب أن يكون من 8 إلى 15 رقمًا.' },
       valid: 'صحيح',
       preview: 'معاينة', previewClose: 'إغلاق', dragHint: 'حرّك الماوس فوق الهاتف أو اسحب البطاقات', dragHintTouch: 'اسحب البطاقات يمينًا ويسارًا لتجربتها', pickApps: 'اختر برامجك',
       settings: 'الإعدادات', modeLight: 'فاتح', modeDark: 'مظلم', langLabel: 'اللغة', home: 'الصفحة الرئيسية', remove: 'حذف',
-      copyright: 'جميع الحقوق محفوظة 2026 لـ احمد غنيم', locale: 'ar-EG',
+      copyright: 'جميع الحقوق محفوظة 2026 لـ احمد غنيم', locale: 'en-US',
       ph: { ig: '@username', wa: '+20 100 123 4567', gm: 'name@gmail.com', sc: '@username', x: '@username', fb: 'username', tg: '@username', tt: '@username' },
       hint: { wa: 'رقم الهاتف مع رمز الدولة', gm: 'بريدك الإلكتروني' }
     },
@@ -2691,7 +2653,7 @@ function renderSite(root, cfg, opts) {
     sheetPhone.style.width = (SCREEN_W * s) + 'px';
     sheetPhone.style.height = (SCREEN_H * s) + 'px';
     sheetRoot.style.transform = 'scale(' + s + ')';
-    sheetInst = renderSite(sheetRoot, previewCfg(), { preview: true, wish: false, scale: () => sheetScale });
+    sheetInst = renderSite(sheetRoot, previewCfg(), { preview: true, scale: () => sheetScale });
     sheet.classList.add('active');
     sheet.removeAttribute('inert');
     $('#sheetX').focus({ preventScroll: true });
@@ -2877,7 +2839,7 @@ function renderSite(root, cfg, opts) {
     buildSwatches();
     $('#addCustom').addEventListener('click', addCustom);
     initStage();
-    preview = renderSite($('#previewRoot'), previewCfg(), { preview: true, wish: false, scale: () => phoneScale, headingTag: 'div' });
+    preview = renderSite($('#previewRoot'), previewCfg(), { preview: true, scale: () => phoneScale, headingTag: 'div' });
     applyMode(sMode === 'light', true);
     applyLang(sLang === 'en' ? 'en' : 'ar');
     changed(null);
