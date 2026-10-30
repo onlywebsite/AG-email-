@@ -160,7 +160,8 @@
 
 /* ---- the "make your own" circle (leads to the builder) ---- */
 .cs-make {
-  position: absolute; z-index: 15; top: max(18px, env(safe-area-inset-top)); inset-inline-start: 18px;
+  position: absolute; z-index: 18; top: max(18px, env(safe-area-inset-top)); inset-inline-start: 18px;
+  padding: 0; margin: 0; font: inherit; -webkit-appearance: none; appearance: none;
   display: inline-flex; align-items: center; height: 42px; min-width: 42px; border-radius: 21px; overflow: hidden;
   color: var(--fg); text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
   background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.24); border-top-color: rgba(255, 255, 255, 0.42);
@@ -179,6 +180,42 @@
 .cs[data-theme="white"] .cs-make { background: rgba(18, 19, 26, 0.07); border-color: rgba(18, 19, 26, 0.16); box-shadow: 0 8px 20px rgba(30, 40, 80, 0.16); }
 .cs.is-intro .cs-make { animation: csRise 0.9s var(--ease) 1.3s both; }
 .cs.is-preview .cs-make { -webkit-backdrop-filter: none; backdrop-filter: none; pointer-events: none; top: 16px; inset-inline-start: 16px; }
+
+/* the small menu that opens from the circle (client page only) */
+.cs-menu-scrim {
+  position: absolute; inset: 0; z-index: 16; background: rgba(0, 0, 0, 0.34);
+  opacity: 0; visibility: hidden; transition: opacity 0.35s var(--ease), visibility 0.35s;
+}
+.cs-menu-scrim.active { opacity: 1; visibility: visible; }
+.cs[data-theme="white"] .cs-menu-scrim { background: rgba(24, 30, 52, 0.2); }
+.cs-menu {
+  position: absolute; z-index: 17; top: calc(max(18px, env(safe-area-inset-top)) + 52px); inset-inline-start: 18px;
+  width: min(264px, calc(100% - 36px)); padding: 18px 16px 12px; border-radius: 22px; text-align: start;
+  --menu-fg: #fff; --menu-soft: rgba(255, 255, 255, 0.66);
+  color: var(--menu-fg); background: #16171c;
+  border: 1px solid rgba(255, 255, 255, 0.14); border-top-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform-origin: 21px -10px; transform: translateY(-6px) scale(0.9); opacity: 0; visibility: hidden;
+  transition: transform 0.5s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.28s ease, visibility 0.5s;
+}
+.cs[dir="rtl"] .cs-menu { transform-origin: calc(100% - 21px) -10px; }
+.cs-menu.active { transform: none; opacity: 1; visibility: visible; }
+.cs[data-theme="white"] .cs-menu { --menu-fg: #12131a; --menu-soft: rgba(18, 19, 26, 0.62); background: #ffffff; border-color: rgba(18, 19, 26, 0.1); box-shadow: 0 22px 44px rgba(30, 40, 80, 0.24); }
+.cs-menu h3 { font-size: 15.5px; font-weight: 700; line-height: 1.4; margin: 0 0 4px; }
+.cs-menu p { font-size: 12.5px; line-height: 1.65; color: var(--menu-soft); margin: 0 0 14px; text-wrap: balance; }
+.cs-menu-go {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 14px; border-radius: 14px;
+  color: var(--menu-fg); text-decoration: none; font-size: 13.5px; font-weight: 700; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.24) 0%, rgba(184, 134, 11, 0.1) 100%); border: 1px solid rgba(214, 170, 0, 0.6);
+  transition: transform 0.25s var(--ease), background 0.25s ease;
+}
+.cs-menu-go:active { transform: scale(0.97); }
+.cs-menu-no {
+  display: block; width: 100%; margin-top: 4px; padding: 11px 14px; border-radius: 12px; font: inherit; font-size: 13px; font-weight: 600;
+  color: var(--menu-soft); background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.cs-menu-go:focus-visible, .cs-menu-no:focus-visible { outline: 2px solid var(--menu-fg); outline-offset: 2px; }
+@media (hover: hover) { .cs-menu-no:hover { color: var(--menu-fg); } .cs-menu-go:hover { background: linear-gradient(135deg, rgba(255, 215, 0, 0.34) 0%, rgba(184, 134, 11, 0.16) 100%); } }
 .cs-timer { font-variant-numeric: tabular-nums; }
 
 /* ---- the deck ---- */
@@ -856,8 +893,8 @@ function createDeck(stack, opts) {
    Text is always set with textContent; links are re-validated upstream.
 ------------------------------------------------------------------- */
 const SITE_I18N = {
-  ar: { make: 'اصنع صفحتك', redirect: 'سيتم انتقالك خلال', go: 'جاري الانتقال...', cancel: 'إلغاء', shareTitle: 'مشاركة الرابط', copy: 'نسخ الرابط', copied: 'تم النسخ!', apps: 'مشاركة عبر التطبيقات', shareAria: 'مشاركة', close: 'إغلاق', noShare: 'متصفحك لا يدعم هذه الميزة' },
-  en: { make: 'Make your page', redirect: 'Redirecting in', go: 'Redirecting...', cancel: 'Cancel', shareTitle: 'Share link', copy: 'Copy link', copied: 'Copied!', apps: 'Share via apps', shareAria: 'Share', close: 'Close', noShare: 'Your browser does not support this' }
+  ar: { make: 'اصنع صفحتك', makeTitle: 'اصنع صفحتك الخاصة', makeDesc: 'صفحة روابط ثلاثية الأبعاد مثل هذه، برابط خاص بك.', makeGo: 'إنشاء موقع الآن', makeNo: 'ليس الآن', redirect: 'سيتم انتقالك خلال', go: 'جاري الانتقال...', cancel: 'إلغاء', shareTitle: 'مشاركة الرابط', copy: 'نسخ الرابط', copied: 'تم النسخ!', apps: 'مشاركة عبر التطبيقات', shareAria: 'مشاركة', close: 'إغلاق', noShare: 'متصفحك لا يدعم هذه الميزة' },
+  en: { make: 'Make your page', makeTitle: 'Make your own page', makeDesc: 'A 3D link page like this one, with a private link of your own.', makeGo: 'Create your site now', makeNo: 'Not now', redirect: 'Redirecting in', go: 'Redirecting...', cancel: 'Cancel', shareTitle: 'Share link', copy: 'Copy link', copied: 'Copied!', apps: 'Share via apps', shareAria: 'Share', close: 'Close', noShare: 'Your browser does not support this' }
 };
 const REDIRECT_SECONDS = 3;
 
@@ -916,7 +953,8 @@ function renderSite(root, cfg, opts) {
   root.appendChild(scroll);
 
   /* a small glass circle in the corner, like the builder's settings button: leads to the builder for anyone who wants a page like this */
-  const mk = csEl(preview ? 'span' : 'a', 'cs-make');
+  const mk = csEl(preview ? 'span' : 'button', 'cs-make');
+  if (!preview) { mk.type = 'button'; mk.setAttribute('aria-haspopup', 'dialog'); mk.setAttribute('aria-expanded', 'false'); }
   const mkIc = csEl('span', 'cs-make-ic');
   mkIc.innerHTML = uiIcon('spark', 19);
   const mkTx = csEl('span', 'cs-make-tx');
@@ -928,6 +966,24 @@ function renderSite(root, cfg, opts) {
     /* shows its label for a few seconds after the intro so the circle explains itself, then folds back into a circle */
     peekT1 = setTimeout(() => { mk.classList.add('peek'); }, 2800);
     peekT2 = setTimeout(() => { mk.classList.remove('peek'); }, 7200);
+  }
+
+  /* the small menu behind the circle: the visitor chooses whether to go to the builder, nothing happens on the first touch */
+  let menu = null, menuScrim = null, menuTitle = null, menuDesc = null, menuGo = null, menuGoTx = null, menuNo = null;
+  if (!preview) {
+    menuScrim = csEl('div', 'cs-menu-scrim');
+    menu = csEl('div', 'cs-menu');
+    menu.setAttribute('role', 'dialog');
+    menuTitle = csEl('h3');
+    menuDesc = csEl('p');
+    menuGo = csEl('a', 'cs-menu-go');
+    menuGo.innerHTML = uiIcon('spark', 17);
+    menuGoTx = csEl('span');
+    menuGo.appendChild(menuGoTx);
+    menuNo = csEl('button', 'cs-menu-no');
+    menuNo.type = 'button';
+    menu.append(menuTitle, menuDesc, menuGo, menuNo);
+    root.append(menuScrim, menu);
   }
 
   const overlay = csEl('div', 'cs-overlay');
@@ -1010,6 +1066,7 @@ function renderSite(root, cfg, opts) {
     shareUrl = rec.data.u.indexOf('mailto:') === 0 ? rec.data.u.slice(7) : rec.data.u;
     shareLabel = rec.label;
     popDesc.textContent = shareLabel;
+    closeMenu(false);
     overlay.classList.add('active');
     pop.classList.add('active');
     popCopy.focus({ preventScroll: true });
@@ -1020,7 +1077,41 @@ function renderSite(root, cfg, opts) {
   }
   overlay.addEventListener('click', closeShare);
   popX.addEventListener('click', closeShare);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeShare(); }, { signal: ac.signal });
+
+  /* ---------- the "make your own" menu ---------- */
+  function menuIsOpen() { return !!menu && menu.classList.contains('active'); }
+  function openMenu() {
+    if (!menu || menuIsOpen()) return;
+    clearTimer();                    /* a running redirect must not carry the visitor away while they are choosing */
+    closeShare();
+    clearTimeout(peekT1); clearTimeout(peekT2);
+    mk.classList.remove('peek');
+    menu.classList.add('active');
+    menuScrim.classList.add('active');
+    mk.setAttribute('aria-expanded', 'true');
+    /* the menu turns visible one frame into its transition, only then can it take focus */
+    setTimeout(() => { if (menuIsOpen()) menuGo.focus({ preventScroll: true }); }, 60);
+  }
+  function closeMenu(refocus) {
+    if (!menu || !menuIsOpen()) return;
+    menu.classList.remove('active');
+    menuScrim.classList.remove('active');
+    mk.setAttribute('aria-expanded', 'false');
+    if (refocus) mk.focus({ preventScroll: true });
+  }
+  if (menu) {
+    mk.addEventListener('click', (e) => { e.preventDefault(); if (menuIsOpen()) closeMenu(true); else openMenu(); });
+    menuScrim.addEventListener('click', () => closeMenu(false));
+    menuNo.addEventListener('click', () => closeMenu(true));
+    menu.addEventListener('focusout', (e) => {
+      const to = e.relatedTarget;
+      if (menuIsOpen() && to && !menu.contains(to) && to !== mk) closeMenu(false);
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (menuIsOpen()) closeMenu(true); else closeShare();
+  }, { signal: ac.signal });
   popCopy.addEventListener('click', () => {
     const t = T();
     const done = () => { popCopyTxt.textContent = t.copied; setTimeout(() => { popCopyTxt.textContent = t.copy; }, 1800); };
@@ -1141,7 +1232,12 @@ function renderSite(root, cfg, opts) {
     mkTx.textContent = t.make;
     if (!preview) {
       mk.setAttribute('aria-label', t.make);
-      mk.setAttribute('href', (opts.makeHref || 'builder.html') + '?lang=' + lang + '&mode=' + (theme === 'white' ? 'light' : 'dark'));
+      menu.setAttribute('aria-label', t.makeTitle);
+      menuTitle.textContent = t.makeTitle;
+      menuDesc.textContent = t.makeDesc;
+      menuGoTx.textContent = t.makeGo;
+      menuNo.textContent = t.makeNo;
+      menuGo.setAttribute('href', (opts.makeHref || 'builder.html') + '?lang=' + lang + '&mode=' + (theme === 'white' ? 'light' : 'dark'));
     }
 
     avatar.textContent = '';
